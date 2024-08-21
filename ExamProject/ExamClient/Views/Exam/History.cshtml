@@ -1,0 +1,32 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<h1>Bài thi</h1>
+<div>
+    <h3><strong>Điểm:</strong> @ViewBag.Score/10</h3>
+    <h3><strong>Ngày bắt đầu:</strong> @ViewBag.StartDate</h3>
+</div>
+@foreach (var question in Model)
+{
+    <div class="question">
+        <p>@question.Content</p>
+        <div>
+            <input type="radio" id="answerA_@question.QuestionId" name="answer_@question.QuestionId" value="A" @(question.SelectedAnswer == "A" ? "checked" : "") />
+            <label for="answerA_@question.QuestionId" style="@(question.SelectedAnswer == "A" && question.SelectedAnswer != question.CorrectAnswer ? "color:red; font-weight:bold;" : (question.CorrectAnswer == "A" ? "color:green; font-weight:bold;" : ""))">@question.AnswerA</label>
+        </div>
+        <div>
+            <input type="radio" id="answerB_@question.QuestionId" name="answer_@question.QuestionId" value="B" @(question.SelectedAnswer == "B" ? "checked" : "") />
+            <label for="answerB_@question.QuestionId" style="@(question.SelectedAnswer == "B" && question.SelectedAnswer != question.CorrectAnswer ? "color:red; font-weight:bold;" : (question.CorrectAnswer == "B" ? "color:green; font-weight:bold;" : ""))">@question.AnswerB</label>
+        </div>
+        <div>
+            <input type="radio" id="answerC_@question.QuestionId" name="answer_@question.QuestionId" value="C" @(question.SelectedAnswer == "C" ? "checked" : "") />
+            <label for="answerC_@question.QuestionId" style="@(question.SelectedAnswer == "C" && question.SelectedAnswer != question.CorrectAnswer ? "color:red; font-weight:bold;" : (question.CorrectAnswer == "C" ? "color:green; font-weight:bold;" : ""))">@question.AnswerC</label>
+        </div>
+        <div>
+            <input type="radio" id="answerD_@question.QuestionId" name="answer_@question.QuestionId" value="D" @(question.SelectedAnswer == "D" ? "checked" : "") />
+            <label for="answerD_@question.QuestionId" style="@(question.SelectedAnswer == "D" && question.SelectedAnswer != question.CorrectAnswer ? "color:red; font-weight:bold;" : (question.CorrectAnswer == "D" ? "color:green; font-weight:bold;" : ""))">@question.AnswerD</label>
+        </div>
+    </div>
+}

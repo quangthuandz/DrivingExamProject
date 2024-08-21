@@ -1,0 +1,12 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<h1>Kết quả bài kiểm tra</h1>
+
+<h3>Điểm số: @ViewBag.Score/10</h3>
+<h3>Thời gian: @ViewBag.Time</h3>
+
+
+<a href="@Url.Action("History", "Exam")" class="btn btn-primary">Xem lịch sử bài thi</a>

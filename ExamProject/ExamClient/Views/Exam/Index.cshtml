@@ -1,0 +1,243 @@
+﻿@{
+    ViewData["Title"] = "Exam";
+}
+<style>
+    /* CSS for exam application */
+    #question-nav {
+        margin-bottom: 20px;
+    }
+
+    .button-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+    }
+
+        .button-grid button {
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+            .button-grid button.answered {
+                background-color: #4CAF50; /* Green */
+                color: white;
+            }
+
+    #exam-form {
+        margin-top: 20px;
+    }
+
+    .question {
+        margin-bottom: 20px;
+    }
+
+        .question h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .question ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+            .question ul li {
+                margin-bottom: 10px;
+            }
+
+                .question ul li label {
+                    cursor: pointer;
+                }
+
+    /* Timer styles */
+    #timer {
+        margin-top: 20px;
+        font-size: 18px;
+    }
+
+    /* Submit button style */
+    #submit-btn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #007bff; /* Bootstrap primary color */
+        color: white;
+        border: none;
+    }
+
+        #submit-btn:hover {
+            background-color: #0056b3; /* Darker primary color on hover */
+        }
+
+    /* Previous and Next buttons */
+    #prev-btn, #next-btn {
+        margin-top: 10px;
+        padding: 8px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+    }
+
+        #prev-btn:hover, #next-btn:hover {
+            background-color: #0056b3;
+        }
+
+</style>
+<div id="question-nav">
+    <h4>Mục lục câu hỏi</h4>
+    <div id="question-buttons" class="button-grid"></div>
+</div>
+
+<form id="exam-form" method="post">
+    <input type="hidden" name="answers" id="answers-input" />
+    <input type="hidden" name="questionAnswers" id="questionAnswers-input" />
+    <input type="hidden" name="questionIds" id="questionIds-input" />
+    <input type="hidden" name="isRandomChecked" id="isRandomChecked-input" />
+
+    <div id="question-container"></div>
+
+    <div id="timer">
+        <span id="time">10:00</span>
+    </div>
+    <div>
+        <input type="hidden" id="submit-time" name="submitTime" />
+        <input type="hidden" id="start-time" name="startTime" />
+        <input type="hidden" id="examId" name="examId" />
+        <button type="submit" asp-controller="Exam" asp-action="Submit" id="submit-btn">Nộp bài</button>
+    </div>
+</form>
+<div>
+    <button type="button" id="prev-btn">Câu trước</button>
+    <button type="button" id="next-btn">Câu sau</button>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        $(document).ready(function () {
+
+            localStorage.removeItem("examAnswers");
+
+            var questions = JSON.parse(localStorage.getItem("examQuestions"));
+            var answers = JSON.parse(localStorage.getItem("examAnswers")) || {};
+            var container = $("#question-container");
+            var questionButtons = $("#question-buttons");
+            var currentIndex = 0;
+            var startTime = new Date();
+            localStorage.setItem("examStartTime", startTime.toISOString());
+
+
+
+            function showQuestion(index) {
+                var question = questions[index];
+
+                var questionElement = `
+                            <div class="question" id="question-${index}">
+                                <h3>Câu ${index + 1}: ${question.content}</h3>
+                                        <ul>
+                                            <li><label><input type="radio" name="answers[${index}]" value="A"> A. ${question.answerA}</label></li>
+                                            <li><label><input type="radio" name="answers[${index}]" value="B"> B. ${question.answerB}</label></li>
+                                            <li><label><input type="radio" name="answers[${index}]" value="C"> C. ${question.answerC}</label></li>
+                                            <li><label><input type="radio" name="answers[${index}]" value="D"> D. ${question.answerD}</label></li>
+                                        </ul>
+                                                        <input type="hidden" name="questionAnswers[${index}]" value="${question.correctAnswer}">
+                            </div>
+                        `;
+                container.html(questionElement);
+
+                if (answers[index]) {
+                    $(`input[name="answers[${index}]"][value="${answers[index]}"]`).prop('checked', true);
+                    $(`#btn-${index}`).addClass('answered'); // Add 'answered' class to corresponding button
+                } else {
+                    $(`#btn-${index}`).removeClass('answered'); // Remove 'answered' class if no answer selected
+                }
+
+                $("input[type=radio]").change(function () {
+                    var name = $(this).attr("name");
+                    var index = name.match(/\d+/)[0];
+                    var value = $(this).val();
+                    answers[index] = value;
+                    localStorage.setItem("examAnswers", JSON.stringify(answers));
+
+                    if (value) {
+                        $(`#btn-${index}`).addClass('answered'); // Add 'answered' class when radio button selected
+                    } else {
+                        $(`#btn-${index}`).removeClass('answered'); // Remove 'answered' class when radio button deselected
+                    }
+                });
+            }
+
+            questions.forEach(function (question, index) {
+                var buttonElement = `<button id="btn-${index}" class="${answers[index] ? 'answered' : ''}">Câu ${index + 1}</button>`;
+                questionButtons.append(buttonElement);
+            });
+
+            $("#question-buttons").on("click", "button", function () {
+                var index = $(this).attr("id").split("-")[1];
+                currentIndex = parseInt(index);
+                showQuestion(currentIndex);
+            });
+
+            $("#prev-btn").click(function () {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    showQuestion(currentIndex);
+                }
+            });
+
+            $("#next-btn").click(function () {
+                if (currentIndex < questions.length - 1) {
+                    currentIndex++;
+                    showQuestion(currentIndex);
+                }
+            });
+
+            var questionIds = questions.map(question => question.questionId);
+            $("#questionIds-input").val(JSON.stringify(questionIds));
+
+            $("#exam-form").submit(function () {
+                $("#answers-input").val(JSON.stringify(answers));
+                var startTime = localStorage.getItem("examStartTime");
+                $("#start-time").val(startTime);
+                var examNumber = localStorage.getItem("examNumber");
+                $("#examId").val(examNumber);
+                var questionAnswers = questions.map(question => question.correctAnswer);
+                $("#questionAnswers-input").val(JSON.stringify(questionAnswers));
+                var isRandomChecked = localStorage.getItem("isRandomChecked") || 0; // Default to 0 if not set
+                $("#isRandomChecked-input").val(isRandomChecked);
+            });
+
+            showQuestion(currentIndex);
+
+            var timer = 600;
+            var display = document.querySelector('#time');
+            startTimer(timer, display);
+
+            function startTimer(duration, display) {
+                var timer = duration, minutes, seconds;
+                setInterval(function () {
+                    minutes = parseInt(timer / 60, 10);
+                    seconds = parseInt(timer % 60, 10);
+
+                    minutes = minutes < 10 ? "0" + minutes : minutes;
+                    seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                    display.textContent = minutes + ":" + seconds;
+
+                    if (--timer < 0) {
+                        timer = 0;
+                    }
+                }, 1000);
+            }
+        });
+    </script>
+}
+

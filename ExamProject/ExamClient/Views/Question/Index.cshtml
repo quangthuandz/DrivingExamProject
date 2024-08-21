@@ -1,0 +1,368 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KyZXEAg3QhqLMpG8r+Knujsl5+5hb7MrHbLS5X4yz4OzBoU6U4P5Kj8U6QjY6SztyF1e5ijF0ExG2t6F3J8x/g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            margin: 4px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+            button:hover {
+                background-color: #45a049;
+            }
+
+        #questionForm {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+            #questionForm table {
+                width: 100%;
+                margin-bottom: 0;
+            }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+            .pagination button {
+                margin: 0 5px;
+                padding: 10px 15px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background-color: #4CAF50;
+                color: white;
+                cursor: pointer;
+            }
+
+                .pagination button.disabled {
+                    background-color: #ddd;
+                    cursor: not-allowed;
+                }
+    </style>
+</head>
+<body>
+    <h1>List Question</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>QuestionID</th>
+                <th>Question Content</th>
+                <th>Answer A</th>
+                <th>Answer B</th>
+                <th>Answer C</th>
+                <th>Answer D</th>
+                <th>Correct Answer</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="questions">
+        </tbody>
+    </table>
+
+    <div class="pagination" id="pagination"></div>
+
+    <h1>Question Detail</h1>
+    <div id="questionForm">
+        <table>
+            <tbody>
+                <tr>
+                    <td>Question Id:</td>
+                    <td>
+                        <input type="text" id="questionId" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Question Content:</td>
+                    <td>
+                        <input type="text" id="questionContent" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Answer A:</td>
+                    <td>
+                        <input type="text" id="answerA" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Answer B:</td>
+                    <td>
+                        <input type="text" id="answerB" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Answer C:</td>
+                    <td>
+                        <input type="text" id="answerC" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Answer D:</td>
+                    <td>
+                        <input type="text" id="answerD" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Correct Answer:</td>
+                    <td>
+                        <select id="correctAnswer" name="correctAnswer">
+                            <option value="A">Answer A</option>
+                            <option value="B">Answer B</option>
+                            <option value="C">Answer C</option>
+                            <option value="D">Answer D</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>
+                        <button onclick="saveData()">Save</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        const apiURL = "https://localhost:5000/api/Question";
+        let currentPage = 1;
+        const pageSize = 10;
+
+        function getAccessToken() {
+            return '@Html.Raw(ViewBag.AccessToken)';
+        }
+
+        $(document).ready(function () {
+            getQuestionData(currentPage);
+        });
+
+        function getQuestionData(page) {
+            $.ajax({
+                url: `${apiURL}/GetAllQuestion?$top=${pageSize}&$skip=${(page - 1) * pageSize}`,
+                method: 'GET',
+                headers: {
+                    "Authorization": `Bearer ${getAccessToken()}`,
+                    "Content-Type": "application/json"
+                },
+                success: function (resp) {
+                    showQuestions(resp);
+                    updatePagination(page);
+                },
+                error: function (xhr, status, code) {
+                    console.log("Error: " + code + ", Status: " + status + ", Response: " + xhr.responseText);
+                }
+            });
+        }
+
+        function showQuestions(data) {
+            let html = '';
+            for (var i = 0; i < data.length; i++) {
+                html += `
+                            <tr>
+                                <td>${data[i].questionId}</td>
+                                <td>${data[i].content}</td>
+                                <td>${data[i].answerA}</td>
+                                <td>${data[i].answerB}</td>
+                                <td>${data[i].answerC}</td>
+                                <td>${data[i].answerD}</td>
+                                <td>${data[i].correctAnswer}</td>
+                                <td>
+                                    <button onclick="getQuestionDetail(${data[i].questionId})">Detail</button>
+                                    <button onclick="deleteQuestion(${data[i].questionId})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+            }
+            $("#questions").html(html);
+        }
+
+        function updatePagination(currentPage) {
+            let html = '';
+            for (let i = 1; i <= 10; i++) {
+                if (i === currentPage) {
+                    html += `<button class="disabled">${i}</button>`;
+                } else {
+                    html += `<button onclick="changePage(${i})">${i}</button>`;
+                }
+            }
+            $("#pagination").html(html);
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            getQuestionData(page);
+        }
+
+        function addQuestion() {
+            const content = $("#questionContent").val();
+            const answerA = $("#answerA").val();
+            const answerB = $("#answerB").val();
+            const answerC = $("#answerC").val();
+            const answerD = $("#answerD").val();
+            const correctAnswer = $("#correctAnswer").val();
+
+            const bodyData = {
+                content: content,
+                answerA: answerA,
+                answerB: answerB,
+                answerC: answerC,
+                answerD: answerD,
+                correctAnswer: correctAnswer
+            };
+
+            $.ajax({
+                url: `${apiURL}/AddQuestion`,
+                method: 'POST',
+                headers: {
+                    "Authorization": `Bearer ${getAccessToken()}`,
+                    "Content-Type": "application/json"
+                },
+                data: JSON.stringify(bodyData),
+                success: function () {
+                    getQuestionData(currentPage);
+                },
+                error: function (xhr, status, code) {
+                    console.log("Error: " + code + ", Status: " + status + ", Response: " + xhr.responseText);
+                }
+            });
+        }
+
+        function deleteQuestion(questionId) {
+            if (confirm("Are you sure you want to delete this question?")) {
+                $.ajax({
+                    url: `${apiURL}/DeleteQuestion/${questionId}`,
+                    method: 'DELETE',
+                    headers: {
+                        "Authorization": `Bearer ${getAccessToken()}`,
+                        "Content-Type": "application/json"
+                    },
+                    success: function () {
+                        getQuestionData(currentPage);
+                    },
+                    error: function (xhr, status, code) {
+                        console.log("Error: " + code + ", Status: " + status + ", Response: " + xhr.responseText);
+                    }
+                });
+            }
+        }
+
+        function getQuestionDetail(questionId) {
+            $.ajax({
+                url: `${apiURL}/${questionId}`,
+                method: 'GET',
+                headers: {
+                    "Authorization": `Bearer ${getAccessToken()}`,
+                    "Content-Type": "application/json"
+                },
+                success: function (data) {
+                    $("#questionId").val(data.questionId);
+                    $("#questionContent").val(data.content);
+                    $("#answerA").val(data.answerA);
+                    $("#answerB").val(data.answerB);
+                    $("#answerC").val(data.answerC);
+                    $("#answerD").val(data.answerD);
+                    $("#correctAnswer").val(data.correctAnswer);
+                },
+                error: function (xhr, status, code) {
+                    console.log("Error: " + code + ", Status: " + status + ", Response: " + xhr.responseText);
+                }
+            });
+        }
+
+        function saveData() {
+            const questionId = $("#questionId").val();
+            const content = $("#questionContent").val();
+            const answerA = $("#answerA").val();
+            const answerB = $("#answerB").val();
+            const answerC = $("#answerC").val();
+            const answerD = $("#answerD").val();
+            const correctAnswer = $("#correctAnswer").val();
+
+            const bodyData = {
+                questionId: questionId,
+                content: content,
+                answerA: answerA,
+                answerB: answerB,
+                answerC: answerC,
+                answerD: answerD,
+                correctAnswer: correctAnswer
+            };
+
+            $.ajax({
+                url: `${apiURL}/UpdateQuestion`,
+                method: 'PUT',
+                headers: {
+                    "Authorization": `Bearer ${getAccessToken()}`,
+                    "Content-Type": "application/json"
+                },
+                data: JSON.stringify(bodyData),
+                success: function () {
+                    getQuestionData(currentPage);
+                },
+                error: function (xhr, status, code) {
+                    console.log("Error: " + code + ", Status: " + status + ", Response: " + xhr.responseText);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
